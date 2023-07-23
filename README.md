@@ -9,7 +9,7 @@ Nautilus script to convert a screencast recorded in webm to mp4
     
 ```bash
 git clone git@github.com:Dinika/convert-webm-to-mp4.git
-cp convert\ to\ mp4 ~/.local/share/nautilus/scripts/ # Not the escaped spaces in the "convert to mp4" file.
+cp convert\ to\ mp4 ~/.local/share/nautilus/scripts/ # Note the escaped spaces in the "convert to mp4" file.
 ```
 
 2. Make the file executable:
