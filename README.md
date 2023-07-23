@@ -42,3 +42,7 @@ sudo dnf install gstreamer1-plugins-{bad-\*,good-\*,base} gstreamer1-plugin-open
 sudo dnf install lame\* --exclude=lame-devel
 sudo dnf group upgrade --with-optional Multimedia
 ```
+
+## License
+
+This software is distributed under GNU GENERAL PUBLIC LICENSE (GPL Version 3)
