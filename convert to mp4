@@ -1,0 +1,74 @@
+#!/bin/bash -x
+
+set -o nounset
+set -o allexport
+
+supported_extension1="webm"
+supported_extension2="mp4"
+
+destination_extension="mp4"
+
+convert_file_to_mp4() {
+    local original_filepath=$1
+    local current_file_index=$2
+    local total_files=$3
+
+    # Return early is file extension is not supported for conversion
+    local filename=$(basename "$original_filepath")
+    local extension="${filename##*.}"
+    if [[ "$extension" != "$supported_extension1" && "$extension" != "$supported_extension2" ]]; then
+        zenity --warning --text="File ${filename} is not supported for conversion. Only ${supported_extension1} or ${supported_extension2} extesions are supported."
+        return
+    fi
+
+    # Handle case when destination filename already exists
+    local mp4_filepath="${original_filepath%.*}.${destination_extension}"
+    if [[ -e $mp4_filepath ]]; then
+        mp4_filepath="${original_filepath%.*}-$(date +%Y%m%d%H%M%S).${destination_extension}"
+    fi
+
+    local base_filename=$(basename "$original_filepath" .webm)
+
+    # Start conversion in background
+    ffmpeg  -i  "$original_filepath" -c:v libx264  -vf "pad=ceil(iw/2)*2:ceil(ih/2)*2" "$mp4_filepath" &
+    local ffmpeg_pid=$!
+    
+    # Notify user of ongoing conversion
+
+    # We don't want double quotes around ffmpeg_pid var because we want the expansion to happen when "trap" is defined, not when it is executed.
+    # If it is expanded at execution time, it might get the pid of the next conversion process (although in the current process it should not happen because we wait for the ffmpeg process to end. Still better safe than sorry).    
+    trap "echo killing $ffmpeg_pid; kill $ffmpeg_pid;" HUP
+    wait_for_pid $ffmpeg_pid | zenity \
+        --progress \
+        --text="Converting file $base_filename ($current_file_index/$total_files)" \
+        --pulsate \
+        --auto-kill \
+        --auto-close
+    
+}
+
+wait_for_pid() {
+    local p_id=$1
+    while [[ -e /proc/$p_id ]] # Dont use single brackets because its a special bash command. -e is bash for "exists", so essentially, this while loop goes on until the pid exists.
+    do
+        sleep .1
+        echo # The output of this echo is being written to the next command in pipe (which is zenity in this case). 
+        # When cancel button is clicked, zenity dies. The piping fails because there's no process taking in the output of this echo. This causes the `wait_for_pid` function to die as well.
+    done
+}
+
+
+main() {
+    zenity --notification --text="Conversion started"
+
+    index=1
+    for filepath in "$@"; do
+
+        convert_file_to_mp4 "$filepath" $index $#
+        index=$((index + 1))
+    done
+
+    zenity --notification --text="Conversion completed"
+}
+
+main "$@"
